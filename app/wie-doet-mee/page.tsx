@@ -1,45 +1,58 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 type Speler = {
   naam: string;
-  foto: string;
+  bestand: string;
 };
 
-const spelers: Speler[] = [
-  { naam: "Ed Beijn", foto: "/players/edb.png" },
-  { naam: "Jan Bonnema", foto: "/players/janb.png" },
-  { naam: "Henny Gouw", foto: "/players/hennyg.png" },
-  { naam: "Cees de Graaf", foto: "/players/ceesdg.png" },
-  { naam: "Henk de Graaf", foto: "/players/henkdg.png" },
-  { naam: "Cor Heijboer", foto: "/players/corh.png" },
-  { naam: "Jan Hollemans", foto: "/players/tijdelijk.png" },
-  { naam: "Ed Jonker", foto: "/players/edj.png" },
-  { naam: "Arie Langstraat", foto: "/players/ariel.png" },
-  { naam: "Piet van Loon", foto: "/players/pietvl.png" },
-  { naam: "Cees Meeuwis", foto: "/players/ceesm.png" },
-  { naam: "Huug Noordermeer", foto: "/players/huugn.png" },
-  { naam: "Dick Nugteren", foto: "/players/dickn.png" },
-  { naam: "John Schaap", foto: "/players/johns.png" },
-  { naam: "Martin Schoenmakers", foto: "/players/martin.png" },
-  { naam: "Pieter Slijkoord", foto: "/players/pieters.png" },
-  { naam: "Wim Smit", foto: "/players/wims.png" },
-  { naam: "Aad Tettero", foto: "/players/aadt.png" },
-  { naam: "Cees van Tooren", foto: "/players/ceesvt.png" },
-  { naam: "Johan van Zon", foto: "/players/johanvz.png" },
-  { naam: "Gerard Klaui", foto: "/players/tijdelijk.png" },
-  { naam: "Henny de Graaf", foto: "/players/hennydg.png" },
-  { naam: "Leo Koster", foto: "/players/leo.png" },
-  { naam: "Invaller 1", foto: "/players/tijdelijk.png" },
+// BRONLIJST (namen + bestandsnamen)
+const spelersBron: Speler[] = [
+  { naam: "Ed Beijn", bestand: "edb.png" },
+  { naam: "Jan Bonnema", bestand: "janb.png" },
+  { naam: "Henny Gouw", bestand: "hennyg.png" },
+  { naam: "Cees de Graaf", bestand: "ceesdg.png" },
+  { naam: "Henk de Graaf", bestand: "henkdg.png" },
+  { naam: "Cor Heijboer", bestand: "corh.png" },
+  { naam: "Jan Hollemans", bestand: "tijdelijk.png" },
+  { naam: "Ed Jonker", bestand: "edj.png" },
+  { naam: "Arie Langstraat", bestand: "ariel.png" },
+  { naam: "Piet van Loon", bestand: "pietvl.png" },
+  { naam: "Cees Meeuwis", bestand: "ceesm.png" },
+  { naam: "Huug Noordermeer", bestand: "huugn.png" },
+  { naam: "Dick Nugteren", bestand: "dickn.png" },
+  { naam: "John Schaap", bestand: "johns.png" },
+  { naam: "Martin Schoenmakers", bestand: "martin.png" },
+  { naam: "Pieter Slijkoord", bestand: "pieters.png" },
+  { naam: "Wim Smit", bestand: "wims.png" },
+  { naam: "Aad Tettero", bestand: "aadt.png" },
+  { naam: "Cees van Tooren", bestand: "ceesvt.png" },
+  { naam: "Johan van Zon", bestand: "johanvz.png" },
+  { naam: "Gerard Klaui", bestand: "tijdelijk.png" },
+  { naam: "Henny de Graaf", bestand: "hennydg.png" },
+  { naam: "Leo Koster", bestand: "leo.png" },
+  { naam: "Invaller 1", bestand: "tijdelijk.png" },
 ];
 
 export default function WieDoetMee() {
-  // spelers selectie
-  const [geselecteerd, setGeselecteerd] = useState<string[]>([]);
+  // 🎲 RANDOM 1 OF 2 (ÉÉN KEER PER PAGINA-LAAD)
+  const actieveMap = useMemo(() => {
+    const nummer = Math.random() < 0.5 ? 1 : 2;
+    return nummer === 1 ? "players" : "players-net";
+  }, []);
 
-  // actieve banen (a, b, c, d)
+  // selecties
+  const [geselecteerd, setGeselecteerd] = useState<string[]>([]);
   const [banen, setBanen] = useState<string[]>([]);
+
+  // echte spelerslijst met juiste map
+  const spelers = useMemo(() => {
+    return spelersBron.map((s) => ({
+      naam: s.naam,
+      foto: `/${actieveMap}/${s.bestand}`,
+    }));
+  }, [actieveMap]);
 
   function toggleSpeler(naam: string) {
     setGeselecteerd((prev) =>
@@ -62,7 +75,7 @@ export default function WieDoetMee() {
         color: "#fff",
       }}
     >
-      {/* Spelers */}
+      {/* SPELERS */}
       <div
         style={{
           display: "grid",
@@ -84,7 +97,6 @@ export default function WieDoetMee() {
                 textAlign: "center",
                 border: aan ? "4px solid #facc15" : "4px solid transparent",
                 opacity: aan ? 1 : 0.35,
-                transition: "opacity 0.15s ease",
               }}
             >
               <img
@@ -103,8 +115,7 @@ export default function WieDoetMee() {
         })}
       </div>
 
-      {/* Banen A B C D */}
-            {/* Banen knoppen */}
+      {/* BANEN */}
       <div
         style={{
           display: "flex",
@@ -124,13 +135,12 @@ export default function WieDoetMee() {
               width: 80,
               cursor: "pointer",
               opacity: banen.includes(letter) ? 1 : 0.35,
-              transition: "opacity 0.15s ease",
             }}
           />
         ))}
       </div>
 
-      {/* INDELEN knop */}
+      {/* INDELEN */}
       <div style={{ marginTop: 10 }}>
         <img
           src="/indelen.png"
