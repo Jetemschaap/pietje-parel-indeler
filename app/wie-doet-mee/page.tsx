@@ -38,9 +38,9 @@ const spelersBron: Speler[] = [
 export default function WieDoetMee() {
   // 🎲 RANDOM 1 OF 2 (ÉÉN KEER PER PAGINA-LAAD)
   const actieveMap = useMemo(() => {
-    const nummer = Math.random() < 0.5 ? 1 : 2;
-    return nummer === 1 ? "players" : "players-net";
-  }, []);
+  const mappen = ["players", "players-net", "players-bobble"];
+  return mappen[Math.floor(Math.random() * mappen.length)];
+}, []);
 
   // selecties
   const [geselecteerd, setGeselecteerd] = useState<string[]>([]);
