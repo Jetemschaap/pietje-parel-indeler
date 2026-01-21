@@ -43,7 +43,7 @@ function BaanFullWidth({
   const onder = max5.slice(2, 4);
   const extra = max5[4];
 
-  const leeg: Speler = { naam: "", foto: "/players/tijdelijk.png" };
+  const leeg: Speler = { naam: "", foto: "/leeg.png" };
   const b0 = boven[0] ?? leeg;
   const b1 = boven[1] ?? leeg;
   const o0 = onder[0] ?? leeg;
