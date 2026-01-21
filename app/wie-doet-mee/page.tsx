@@ -1,14 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-type Speler = {
+type SpelerBron = {
   naam: string;
   bestand: string;
 };
 
-// BRONLIJST (namen + bestandsnamen)
-const spelersBron: Speler[] = [
+const spelersBron: SpelerBron[] = [
   { naam: "Ed Beijn", bestand: "edb.png" },
   { naam: "Jan Bonnema", bestand: "janb.png" },
   { naam: "Henny Gouw", bestand: "hennyg.png" },
@@ -35,19 +34,27 @@ const spelersBron: Speler[] = [
   { naam: "Invaller 1", bestand: "tijdelijk.png" },
 ];
 
-export default function WieDoetMee() {
-  // 🎲 RANDOM 1 OF 2 (ÉÉN KEER PER PAGINA-LAAD)
-  const actieveMap = useMemo(() => {
-  const mappen = ["players", "players-net", "players-bobble"];
-  return mappen[Math.floor(Math.random() * mappen.length)];
-}, []);
+type Speler = {
+  naam: string;
+  foto: string;
+};
 
-  // selecties
+export default function WieDoetMee() {
+  const [klaar, setKlaar] = useState(false);
+
+  useEffect(() => {
+    setKlaar(true);
+  }, []);
+
+  const actieveMap = useMemo(() => {
+    const mappen = ["players", "players-net", "players-bobble", "beroep", "hipers"];
+    return mappen[Math.floor(Math.random() * mappen.length)];
+  }, []);
+
   const [geselecteerd, setGeselecteerd] = useState<string[]>([]);
   const [banen, setBanen] = useState<string[]>([]);
 
-  // echte spelerslijst met juiste map
-  const spelers = useMemo(() => {
+  const spelers: Speler[] = useMemo(() => {
     return spelersBron.map((s) => ({
       naam: s.naam,
       foto: `/${actieveMap}/${s.bestand}`,
@@ -99,16 +106,20 @@ export default function WieDoetMee() {
                 opacity: aan ? 1 : 0.35,
               }}
             >
-              <img
-                src={s.foto}
-                alt={s.naam}
-                style={{
-                  width: "100%",
-                  height: 140,
-                  objectFit: "cover",
-                  background: "#333",
-                }}
-              />
+              {klaar && (
+                <img
+                  src={s.foto}
+                  alt={s.naam}
+                  style={{
+                    width: "100%",
+                    height: 140,
+                    objectFit: "cover",
+                    background: "#333",
+                    display: "block",
+                  }}
+                />
+              )}
+
               <div style={{ padding: 8, fontWeight: 800 }}>{s.naam}</div>
             </div>
           );
@@ -135,6 +146,7 @@ export default function WieDoetMee() {
               width: 80,
               cursor: "pointer",
               opacity: banen.includes(letter) ? 1 : 0.35,
+              display: "block",
             }}
           />
         ))}
@@ -154,14 +166,13 @@ export default function WieDoetMee() {
             opacity: banen.length === 0 ? 0.4 : 1,
           }}
           onClick={() => {
+            if (banen.length === 0) return;
+
             const gekozenSpelers = spelers.filter((s) =>
               geselecteerd.includes(s.naam)
             );
 
-            localStorage.setItem(
-              "pietje_spelers",
-              JSON.stringify(gekozenSpelers)
-            );
+            localStorage.setItem("pietje_spelers", JSON.stringify(gekozenSpelers));
             localStorage.setItem("pietje_banen", JSON.stringify(banen));
 
             window.location.href = "/banen";
