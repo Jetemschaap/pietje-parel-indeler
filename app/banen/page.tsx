@@ -103,6 +103,14 @@ function rotate<T>(arr: T[], offset: number) {
   const k = ((offset % arr.length) + arr.length) % arr.length;
   return arr.slice(k).concat(arr.slice(0, k));
 }
+function shuffle<T>(arr: T[]) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 /** Per baan hoeveel spelers: normaal 4. Extra wordt 5, tekort wordt 3. 5/3 rouleert per uur. */
 function computeTargetSizes(n: number, banen: string[], hourIndex: number) {
@@ -157,16 +165,20 @@ function assignWith53Rule(
     else specialLanes.push(b);
   });
 
-  // wisselende volgorde per uur (basis-roulatie)
-  const ordered = rotate([...spelers], hourIndex);
+ // Optie A: volledig opnieuw husselen (elke keer echt nieuw)
+const ordered = shuffle([...spelers]);
 
-  // splits: vorige special vs rest
-  let prevSpecial: Speler[] = [];
-  let others: Speler[] = [];
-  for (const s of ordered) {
-    if (prevSpecialNames.has(s.naam)) prevSpecial.push(s);
-    else others.push(s);
-  }
+// splits: vorige special vs rest
+let prevSpecial: Speler[] = [];
+let others: Speler[] = [];
+for (const s of ordered) {
+  if (prevSpecialNames.has(s.naam)) prevSpecial.push(s);
+  else others.push(s);
+}
+
+// beide groepen ook onderling husselen
+prevSpecial = shuffle(prevSpecial);
+others = shuffle(others);
 
   // extra roulatie zodat niet altijd dezelfde persoon de "5e" blijft
   prevSpecial = rotate(prevSpecial, hourIndex);
