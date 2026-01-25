@@ -47,7 +47,8 @@ export default function WieDoetMee() {
   }, []);
 
   const actieveMap = useMemo(() => {
-    const mappen = ["players", "players-net", "players-bobble", "beroep", "hipers"];
+    const mappen = ["players", "players-net", "players-bobble", "beroep", "hipers", "knuffels"];
+
     return mappen[Math.floor(Math.random() * mappen.length)];
   }, []);
 
