@@ -37,11 +37,11 @@ function BaanFullWidth({
   letter: string;
   spelers: Speler[];
 }) {
-  const max5 = spelers.slice(0, 5);
+  const max6 = spelers.slice(0, 6);
 
-  const boven = max5.slice(0, 2);
-  const onder = max5.slice(2, 4);
-  const extra = max5[4];
+  const boven = max6.slice(0, 2);
+  const onder = max6.slice(2, 4);
+  const extras = max6.slice(4); // 0, 1 of 2
 
   const leeg: Speler = { naam: "", foto: "/leeg.png" };
   const b0 = boven[0] ?? leeg;
@@ -81,17 +81,21 @@ function BaanFullWidth({
         <SpelerVak speler={o1} />
       </div>
 
-      {extra && (
+      {extras.length > 0 && (
         <div
           style={{
             marginTop: 16,
             display: "flex",
             justifyContent: "center",
+            gap: 14,
+            flexWrap: "wrap",
           }}
         >
-          <div style={{ width: 160 }}>
-            <SpelerVak speler={extra} />
-          </div>
+          {extras.map((sp, idx) => (
+            <div key={sp.naam + idx} style={{ width: 160 }}>
+              <SpelerVak speler={sp} />
+            </div>
+          ))}
         </div>
       )}
     </section>
@@ -103,6 +107,7 @@ function rotate<T>(arr: T[], offset: number) {
   const k = ((offset % arr.length) + arr.length) % arr.length;
   return arr.slice(k).concat(arr.slice(0, k));
 }
+
 function shuffle<T>(arr: T[]) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -112,22 +117,26 @@ function shuffle<T>(arr: T[]) {
   return a;
 }
 
-/** Per baan hoeveel spelers: normaal 4. Extra wordt 5, tekort wordt 3. 5/3 rouleert per uur. */
+/**
+ * Per baan hoeveel spelers: normaal 4.
+ * Extra wordt 5, tekort wordt 3.
+ * (maar we cappen niet meer op 5 zodat 6 op 1 baan kan)
+ */
 function computeTargetSizes(n: number, banen: string[], hourIndex: number) {
   const m = banen.length;
   const sizes = Array.from({ length: m }, () => 4);
 
   const baseTotal = 4 * m;
-  let diff = n - baseTotal; // + => extra (5), - => tekort (3)
+  let diff = n - baseTotal; // + => extra, - => tekort
 
   let start = hourIndex % m;
 
   if (diff > 0) {
     while (diff > 0) {
-      sizes[start] = Math.min(5, sizes[start] + 1);
+      sizes[start] = sizes[start] + 1;
       diff--;
       start = (start + 1) % m;
-      if (sizes.every((s) => s === 5)) break;
+      if (diff > 0 && sizes.every((s) => s >= 6)) break;
     }
   } else if (diff < 0) {
     diff = -diff;
@@ -135,19 +144,13 @@ function computeTargetSizes(n: number, banen: string[], hourIndex: number) {
       sizes[start] = Math.max(1, sizes[start] - 1);
       diff--;
       start = (start + 1) % m;
-      if (sizes.every((s) => s === 1)) break;
+      if (diff > 0 && sizes.every((s) => s === 1)) break;
     }
   }
 
   return sizes;
 }
 
-/**
- * 5/3-regel:
- * - Bepaal sizes per baan (4 normaal, soms 5 of 3).
- * - Iedereen die vorige uur "special" (op 5 of 3) stond, proberen we nu eerst in 4-banen te zetten.
- * - Bij 9 spelers (2 banen) móét er weer 1 baan van 5 zijn, maar wie die "extra" is rouleert.
- */
 function assignWith53Rule(
   spelers: Speler[],
   banen: string[],
@@ -155,32 +158,28 @@ function assignWith53Rule(
   hourIndex: number
 ) {
   const n = spelers.length;
-
   const sizes = computeTargetSizes(n, banen, hourIndex);
 
   const normalLanes: string[] = [];
   const specialLanes: string[] = [];
+
   banen.forEach((b, idx) => {
     if (sizes[idx] === 4) normalLanes.push(b);
     else specialLanes.push(b);
   });
 
- // Optie A: volledig opnieuw husselen (elke keer echt nieuw)
-const ordered = shuffle([...spelers]);
+  const ordered = shuffle([...spelers]);
 
-// splits: vorige special vs rest
-let prevSpecial: Speler[] = [];
-let others: Speler[] = [];
-for (const s of ordered) {
-  if (prevSpecialNames.has(s.naam)) prevSpecial.push(s);
-  else others.push(s);
-}
+  let prevSpecial: Speler[] = [];
+  let others: Speler[] = [];
+  for (const s of ordered) {
+    if (prevSpecialNames.has(s.naam)) prevSpecial.push(s);
+    else others.push(s);
+  }
 
-// beide groepen ook onderling husselen
-prevSpecial = shuffle(prevSpecial);
-others = shuffle(others);
+  prevSpecial = shuffle(prevSpecial);
+  others = shuffle(others);
 
-  // extra roulatie zodat niet altijd dezelfde persoon de "5e" blijft
   prevSpecial = rotate(prevSpecial, hourIndex);
   others = rotate(others, hourIndex);
 
@@ -189,37 +188,33 @@ others = shuffle(others);
 
   const fillLaneRoundRobin = (laneLetters: string[], pool: Speler[]) => {
     if (laneLetters.length === 0) return;
+
     let laneIdx = 0;
 
     while (pool.length > 0) {
       const lane = laneLetters[laneIdx];
       const target = sizes[banen.indexOf(lane)];
-      if (map[lane].length < Math.min(5, target)) {
+
+      if (map[lane].length < target) {
         map[lane].push(pool.shift()!);
       }
+
       laneIdx = (laneIdx + 1) % laneLetters.length;
 
       const allFull = laneLetters.every((l) => {
         const t = sizes[banen.indexOf(l)];
-        return map[l].length >= Math.min(5, t);
+        return map[l].length >= t;
       });
+
       if (allFull) break;
     }
   };
 
-  // 1) vorige special eerst in normale 4-banen
   fillLaneRoundRobin(normalLanes, prevSpecial);
-
-  // 2) normale banen vullen met rest
   fillLaneRoundRobin(normalLanes, others);
-
-  // 3) special banen vullen met rest
   fillLaneRoundRobin(specialLanes, others);
-
-  // 4) als er nog prevSpecial over is, moeten die toch ergens heen
   fillLaneRoundRobin(specialLanes, prevSpecial);
 
-  // wie is dit uur "special"?
   const specialNow = new Set<string>();
   banen.forEach((b) => {
     const target = sizes[banen.indexOf(b)];
@@ -254,7 +249,6 @@ export default function Banen() {
 
     const s: Speler[] = spelersRaw ? JSON.parse(spelersRaw) : [];
     const b: string[] = banenRaw ? JSON.parse(banenRaw) : [];
-
     const letters = b.map((x) => x.toUpperCase());
 
     const hRaw = localStorage.getItem("pietje_hour");
@@ -264,19 +258,32 @@ export default function Banen() {
     setBanen(letters);
     setHourIndex(h);
 
-    // eerste uur: prevSpecial leeg
-    const { map, specialNow } = assignWith53Rule(
-      s,
-      letters,
-      new Set<string>(),
-      h
-    );
+    // ✅ als er een vaste verdeling is (6/11 regels), gebruiken we die
+    const verdelingRaw = localStorage.getItem("pietje_verdeling");
+    const verdeling: number[] | null = verdelingRaw ? JSON.parse(verdelingRaw) : null;
 
-    setBaanMap(map);
-    localStorage.setItem(
-      "pietje_prev_special",
-      JSON.stringify(Array.from(specialNow))
-    );
+    if (verdeling && verdeling.length === letters.length) {
+      const ordered = shuffle([...s]);
+      const map: Record<string, Speler[]> = {};
+      let idx = 0;
+
+      letters.forEach((letter, i) => {
+        const size = verdeling[i];
+        map[letter] = ordered.slice(idx, idx + size);
+        idx += size;
+      });
+
+      setBaanMap(map);
+      localStorage.setItem("pietje_prev_special", JSON.stringify([]));
+    } else {
+      const { map, specialNow } = assignWith53Rule(s, letters, new Set<string>(), h);
+      setBaanMap(map);
+      localStorage.setItem(
+        "pietje_prev_special",
+        JSON.stringify(Array.from(specialNow))
+      );
+    }
+
     localStorage.setItem("pietje_hour", String(h));
   }, []);
 
@@ -284,6 +291,29 @@ export default function Banen() {
     if (banen.length === 0) return;
 
     const nextHour = hourIndex + 1;
+
+    const verdelingRaw = localStorage.getItem("pietje_verdeling");
+    const verdeling: number[] | null = verdelingRaw ? JSON.parse(verdelingRaw) : null;
+
+    // ✅ bij vaste verdeling: gewoon opnieuw schudden en weer knippen
+    if (verdeling && verdeling.length === banen.length) {
+      const ordered = shuffle([...spelers]);
+      const map: Record<string, Speler[]> = {};
+      let idx = 0;
+
+      banen.forEach((letter, i) => {
+        const size = verdeling[i];
+        map[letter] = ordered.slice(idx, idx + size);
+        idx += size;
+      });
+
+      setBaanMap(map);
+      setHourIndex(nextHour);
+      localStorage.setItem("pietje_hour", String(nextHour));
+      return;
+    }
+
+    // ✅ anders: jouw 5/3/4 logica
     const { map, specialNow } = assignWith53Rule(
       spelers,
       banen,
@@ -302,9 +332,7 @@ export default function Banen() {
   }
 
   return (
-    <main
-      style={{ minHeight: "100vh", background: "#000", color: "#fff", padding: 16 }}
-    >
+    <main style={{ minHeight: "100vh", background: "#000", color: "#fff", padding: 16 }}>
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {banen.map((letter) => (
