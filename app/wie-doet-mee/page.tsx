@@ -39,6 +39,22 @@ type Speler = {
   foto: string;
 };
 
+function baanVerdeling(aantalSpelers: number, aantalBanen: number): number[] | null {
+  if (aantalSpelers === 6) {
+    if (aantalBanen === 1) return [6];
+    if (aantalBanen === 2) return [4, 2];
+    return null;
+  }
+
+  if (aantalSpelers === 11) {
+    if (aantalBanen === 2) return [6, 5];
+    if (aantalBanen === 3) return [4, 4, 3];
+    return null;
+  }
+
+  return null;
+}
+
 export default function WieDoetMee() {
   const [klaar, setKlaar] = useState(false);
 
@@ -167,17 +183,27 @@ export default function WieDoetMee() {
             opacity: banen.length === 0 ? 0.4 : 1,
           }}
           onClick={() => {
-            if (banen.length === 0) return;
+  if (banen.length === 0) return;
 
-            const gekozenSpelers = spelers.filter((s) =>
-              geselecteerd.includes(s.naam)
-            );
+  const gekozenSpelers = spelers.filter((s) => geselecteerd.includes(s.naam));
+  const verdeling = baanVerdeling(gekozenSpelers.length, banen.length);
 
-            localStorage.setItem("pietje_spelers", JSON.stringify(gekozenSpelers));
-            localStorage.setItem("pietje_banen", JSON.stringify(banen));
+  if ((gekozenSpelers.length === 6 || gekozenSpelers.length === 11) && !verdeling) {
+    alert(
+      gekozenSpelers.length === 6
+        ? "Met 6 spelers kan je kiezen: 1 baan (6) of 2 banen (4+2)."
+        : "Met 11 spelers kan je kiezen: 2 banen (6+5) of 3 banen (4+4+3)."
+    );
+    return;
+  }
 
-            window.location.href = "/banen";
-          }}
+  localStorage.setItem("pietje_spelers", JSON.stringify(gekozenSpelers));
+  localStorage.setItem("pietje_banen", JSON.stringify(banen));
+  if (verdeling) localStorage.setItem("pietje_verdeling", JSON.stringify(verdeling));
+
+  window.location.href = "/banen";
+}}
+
         />
       </div>
     </main>
